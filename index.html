@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, height=device-height, initial-scale=1.0, user-scalable=no">
+    <title>Unity Web Player | UnitySkill</title>
+    <style>
+      html, body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+      #unity-canvas {
+        width: 100% !important;
+        height: 100% !important;
+        position: fixed;
+        top: 0;
+        left: 0;
+        background: #231F20;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="unity-canvas" tabindex="-1"></canvas>
+    <script src="https://cdn.jsdelivr.net/gh/JasonCuizy/unity_skill_webgl_build@main/Build/0596f939315ff8a6fa63b0d5e44ea8dc.loader.js"></script>
+    <script>
+      createUnityInstance(document.querySelector("#unity-canvas"), {
+        arguments: [],
+        dataUrl: "https://cdn.jsdelivr.net/gh/JasonCuizy/unity_skill_webgl_build@main/Build/296bece11e27fe6b9f759d3123410e3b.data",
+        frameworkUrl: "https://cdn.jsdelivr.net/gh/JasonCuizy/unity_skill_webgl_build@main/Build/a59f7e9a215bfe5a37ee4c5c966815f5.framework.js",
+        codeUrl: "https://cdn.jsdelivr.net/gh/JasonCuizy/unity_skill_webgl_build@main/Build/3f9751b5d6e85085ee32fcd479f1060e.wasm",
+        streamingAssetsUrl: "https://cdn.jsdelivr.net/gh/JasonCuizy/unity_skill_webgl_build@main/StreamingAssets",
+        companyName: "DefaultCompany",
+        productName: "UnitySkill",
+        productVersion: "0.1",
+        matchWebGLToCanvasSize: true,
+        devicePixelRatio: 1,
+      });
+    </script>
+  </body>
+</html>
