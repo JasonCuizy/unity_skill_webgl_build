@@ -29,6 +29,15 @@ class PreProcessing {
             framework: 0,
             code: 0
         };
+
+        // 添加平滑进度过渡
+        this.lastProgress = 0;
+        this.targetProgress = 0;
+        this.progressAnimationFrame = null;
+
+        // 添加重试配置
+        this.maxRetries = 3;
+        this.retryDelay = 2000; // 2秒
     }
 
     /**
@@ -109,10 +118,28 @@ class PreProcessing {
      * @param {number} progress - 进度值(0-100)
      */
     updateProgress(progress) {
-        this.currentProgress = progress;
-        const totalProgress = Math.round(this.currentProgress);
-        this.progressBar.style.width = `${totalProgress}%`;
-        this.progressText.textContent = `${totalProgress}%`;
+        this.targetProgress = progress;
+        if (!this.progressAnimationFrame) {
+            this.animateProgress();
+        }
+    }
+
+    animateProgress() {
+        const step = (this.targetProgress - this.lastProgress) * 0.1;
+        this.lastProgress += step;
+        
+        if (Math.abs(this.targetProgress - this.lastProgress) > 0.1) {
+            const totalProgress = Math.round(this.lastProgress);
+            this.progressBar.style.width = `${totalProgress}%`;
+            this.progressText.textContent = `${totalProgress}%`;
+            
+            this.progressAnimationFrame = requestAnimationFrame(() => this.animateProgress());
+        } else {
+            this.lastProgress = this.targetProgress;
+            this.progressBar.style.width = `${Math.round(this.targetProgress)}%`;
+            this.progressText.textContent = `${Math.round(this.targetProgress)}%`;
+            this.progressAnimationFrame = null;
+        }
     }
 
     /**
@@ -155,41 +182,53 @@ class PreProcessing {
     }
 
     async fetchAndUnzip(url, mimeType = '', onProgress) {
-        try {
-            const response = await fetch(url);
-            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-            
-            const reader = response.body.getReader();
-            const contentLength = +response.headers.get('Content-Length');
-            
-            let receivedLength = 0;
-            let chunks = [];
-            
-            while(true) {
-                const {done, value} = await reader.read();
+        let retries = 0;
+        
+        while (retries < this.maxRetries) {
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 
-                if (done) break;
-                
-                chunks.push(value);
-                receivedLength += value.length;
-                
-                if (onProgress) {
-                    onProgress(receivedLength / contentLength);
+                const contentLength = +response.headers.get('Content-Length');
+                if (!contentLength) {
+                    throw new Error('无法获取内容长度');
                 }
+                
+                const reader = response.body.getReader();
+                let receivedLength = 0;
+                let chunks = [];
+                
+                while(true) {
+                    const {done, value} = await reader.read();
+                    
+                    if (done) break;
+                    
+                    chunks.push(value);
+                    receivedLength += value.length;
+                    
+                    if (onProgress) {
+                        onProgress(receivedLength / contentLength);
+                    }
+                }
+                
+                const chunksAll = new Uint8Array(receivedLength);
+                let position = 0;
+                for(let chunk of chunks) {
+                    chunksAll.set(chunk, position);
+                    position += chunk.length;
+                }
+                
+                const unzipped = pako.ungzip(chunksAll);
+                return URL.createObjectURL(new Blob([unzipped], mimeType ? {type: mimeType} : undefined));
+                
+            } catch (error) {
+                retries++;
+                if (retries === this.maxRetries) {
+                    throw new Error(`加载失败 (${url}): ${error.message}`);
+                }
+                console.warn(`重试 ${retries}/${this.maxRetries}: ${url}`);
+                await new Promise(resolve => setTimeout(resolve, this.retryDelay));
             }
-            
-            const chunksAll = new Uint8Array(receivedLength);
-            let position = 0;
-            for(let chunk of chunks) {
-                chunksAll.set(chunk, position);
-                position += chunk.length;
-            }
-            
-            const unzipped = pako.ungzip(chunksAll);
-            return URL.createObjectURL(new Blob([unzipped], mimeType ? {type: mimeType} : undefined));
-        } catch (error) {
-            console.error('Error fetching or unzipping:', error);
-            throw error;
         }
     }
 
@@ -250,5 +289,22 @@ class PreProcessing {
             console.error('Error loading resources:', error);
             throw error;
         }
+    }
+
+    // 添加错误提示方法
+    showErrorMessage(message) {
+        if (!this.errorMessage) {
+            this.errorMessage = document.createElement('div');
+            this.errorMessage.style.cssText = `
+                color: #ff4444;
+                margin-top: 20px;
+                text-align: center;
+                font-family: Arial, sans-serif;
+                padding: 0 20px;
+            `;
+            this.loadingScreen.appendChild(this.errorMessage);
+        }
+        this.errorMessage.textContent = `加载失败: ${message}`;
+        this.progressBar.style.background = '#ff4444';
     }
 } 
