@@ -1,3 +1,4 @@
 *.wasm binary
 *.wasm linguist-binary
 *.wasm -text
+*.wasm linguist-detectable
