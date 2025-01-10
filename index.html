@@ -25,42 +25,33 @@
   </head>
   <body>
     <canvas id="unity-canvas" tabindex="-1"></canvas>
+    <script src="pre-processing.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/JasonCuizy/unity_skill_webgl_build@main/Build/unity_skill_webgl_build.loader.js"></script>
     <script>
-      async function fetchAndUnzip(url, mimeType = '') {
-        try {
-          const response = await fetch(url);
-          if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-          const compressedData = await response.arrayBuffer();
-          const unzipped = pako.ungzip(new Uint8Array(compressedData));
-          return URL.createObjectURL(new Blob([unzipped], mimeType ? {type: mimeType} : undefined));
-        } catch (error) {
-          console.error('Error fetching or unzipping:', error);
-          throw error;
-        }
-      }
-
+      const preProcessing = new PreProcessing();
+      
       async function createUnityGame() {
         try {
-          const [dataUrl, frameworkUrl, codeUrl] = await Promise.all([
-            fetchAndUnzip("https://cdn.jsdelivr.net/gh/JasonCuizy/unity_skill_webgl_build@main/Build/unity_skill_webgl_build.data.gz", 'application/octet-stream'),
-            fetchAndUnzip("https://cdn.jsdelivr.net/gh/JasonCuizy/unity_skill_webgl_build@main/Build/unity_skill_webgl_build.framework.js.gz", 'application/javascript'),
-            fetchAndUnzip("https://cdn.jsdelivr.net/gh/JasonCuizy/unity_skill_webgl_build@main/Build/unity_skill_webgl_build.wasm.gz", 'application/wasm')
-          ]);
+          const resources = await preProcessing.loadResources();
           
           await createUnityInstance(document.querySelector("#unity-canvas"), {
             arguments: [],
-            dataUrl,
-            frameworkUrl,
-            codeUrl,
+            dataUrl: resources.dataUrl,
+            frameworkUrl: resources.frameworkUrl,
+            codeUrl: resources.codeUrl,
             streamingAssetsUrl: "https://cdn.jsdelivr.net/gh/JasonCuizy/unity_skill_webgl_build@main/StreamingAssets",
             companyName: "DefaultCompany",
             productName: "UnitySkill",
             productVersion: "0.1",
             matchWebGLToCanvasSize: true,
             devicePixelRatio: 1,
+            onProgress: (progress) => preProcessing.onUnityProgress(progress)
           });
+          
+          // Unity加载完成后
+          preProcessing.onLoadUnityScene();
+          
         } catch (error) {
           console.error('Error creating Unity instance:', error);
         }
