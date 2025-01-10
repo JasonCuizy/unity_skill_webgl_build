@@ -1,2 +1,3 @@
 *.wasm binary
 *.wasm linguist-binary
+*.wasm -text
