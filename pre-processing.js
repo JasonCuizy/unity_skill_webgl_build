@@ -1,5 +1,5 @@
 class PreProcessing {
-    constructor() {
+    constructor(resourcesUrl) {
         // 创建加载界面并添加到页面
         this.loadingScreen = this.createLoadingScreen();
         document.body.appendChild(this.loadingScreen);
@@ -8,20 +8,7 @@ class PreProcessing {
         this.currentProgress = 0;
         
         // 添加资源URL配置
-        this.resources = {
-            data: {
-                url: "https://cdn.jsdelivr.net/gh/JasonCuizy/unity_skill_webgl_build@main/Build/unity_skill_webgl_build.data.gz",
-                mimeType: 'application/octet-stream'
-            },
-            framework: {
-                url: "https://cdn.jsdelivr.net/gh/JasonCuizy/unity_skill_webgl_build@main/Build/unity_skill_webgl_build.framework.js.gz",
-                mimeType: 'application/javascript'
-            },
-            code: {
-                url: "https://cdn.jsdelivr.net/gh/JasonCuizy/unity_skill_webgl_build@main/Build/unity_skill_webgl_build.wasm.gz",
-                mimeType: 'application/wasm'
-            }
-        };
+        this.resources = resourcesUrl;
 
         // 添加进度追踪
         this.resourceProgress = {
@@ -63,7 +50,7 @@ class PreProcessing {
 
         // 创建logo图片
         const logo = document.createElement('img');
-        logo.src = 'thumbnail.png';
+        logo.src = 'favicon.ico';
         logo.style.cssText = `
             width: 80px;
             margin-bottom: 30px;
@@ -189,6 +176,15 @@ class PreProcessing {
                 const response = await fetch(url);
                 if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
                 
+                // 如果服务器正确设置了Content-Encoding: gzip，浏览器会自动解压
+                if (response.headers.get('Content-Encoding') === 'gzip') {
+                    const blob = await response.blob();
+                    if (onProgress) {
+                        onProgress(1);
+                    }
+                    return URL.createObjectURL(blob);
+                }
+
                 const contentLength = +response.headers.get('Content-Length');
                 if (!contentLength) {
                     throw new Error('无法获取内容长度');

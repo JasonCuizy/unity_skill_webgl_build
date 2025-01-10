@@ -27,10 +27,27 @@
     <canvas id="unity-canvas" tabindex="-1"></canvas>
     <script src="pre-processing.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/JasonCuizy/unity_skill_webgl_build@main/Build/unity_skill_webgl_build.loader.js"></script>
+    <script src="Build/unity_skill_webgl_build.loader.js"></script>
     <script>
-      const preProcessing = new PreProcessing();
-      
+
+      // 添加资源URL配置
+      const resourcesUrl = {
+          data: {
+              url: "Build/unity_skill_webgl_build.data.gz",
+              mimeType: 'application/octet-stream'
+          },
+          framework: {
+              url: "Build/unity_skill_webgl_build.framework.js.gz",
+              mimeType: 'application/javascript'
+          },
+          code: {
+              url: "Build/unity_skill_webgl_build.wasm.gz",
+              mimeType: 'application/wasm'
+          }
+      };
+
+      const preProcessing = new PreProcessing(resourcesUrl);   
+
       async function createUnityGame() {
         try {
           const resources = await preProcessing.loadResources();
@@ -40,7 +57,7 @@
             dataUrl: resources.dataUrl,
             frameworkUrl: resources.frameworkUrl,
             codeUrl: resources.codeUrl,
-            streamingAssetsUrl: "https://cdn.jsdelivr.net/gh/JasonCuizy/unity_skill_webgl_build@main/StreamingAssets",
+            streamingAssetsUrl: "StreamingAssets",
             companyName: "DefaultCompany",
             productName: "UnitySkill",
             productVersion: "0.1",
@@ -48,7 +65,6 @@
             devicePixelRatio: 1,
             onProgress: (progress) => preProcessing.onUnityProgress(progress)
           });
-          
           // Unity加载完成后
           preProcessing.onLoadUnityScene();
           
